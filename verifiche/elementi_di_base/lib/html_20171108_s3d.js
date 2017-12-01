@@ -1,21 +1,44 @@
 (function () {
   'use strict';
+  /**
+  * L'elemento che mostra l'output
+  */
   var preview = document.getElementById('render');
+  /**
+  * Il testo immesso dallo studente (codice sorgente)
+  */
   var inputText = document.getElementById('editor').value;
+  /**
+  * Aggiorna la visualizzazione dell'output
+  */
   var visualizzaOutput = function () {
     preview.srcdoc = inputText;
     //styleElem.textContent = cssInput.value;
   };
-  var onChange = function (editor) {
-    inputText = editor.getValue();
+  /**
+  * Le operazioni da effettuare quando cambia l'input
+  */
+  var localSave = function (editor) {
+    // Salva il sorgente nel browser, per eventuali ripristini
     localStorage[window.location.href.split('#') [0]] = inputText;
+  };
+  /**
+  * Aggiorna la visualizzazione dell'output
+  */
+  var aggiorna = function (editor) {
+    // Aggiorna il codice sorgente
+    inputText = editor.getValue();
     visualizzaOutput();
   };
   var addPersistence = function (editor) {
     var address = window.location.href.split('#') [0];
     var persisted = localStorage[address] || editor.getValue();
     editor.setValue(persisted);
-    editor.on('change', onChange);
+    editor.on('change', localSave);
+  };
+  var addPreview = function (editor) {
+    //editor.setValue(preview);
+    editor.on('change', aggiorna);
   };
   var mixedMode = {
     name: 'htmlmixed',
@@ -50,6 +73,7 @@
     autoCloseTags: true
   });
   addPersistence(codemirror);
+  addPreview(codemirror);
   var tests = [
   ];
   var modello = {
