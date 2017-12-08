@@ -162,17 +162,6 @@
       table.append(tfoot);
     }
   }
-  var cercaPrimoBloccoPerTipo = function (doc, context) {
-    if (doc.context == context) {
-      return doc;
-    }
-    var trovato = false;
-    var j;
-    for (j = 0; !trovato && j < doc.blocks.length; j += 1) {
-      trovato = trovato || cercaPrimoBloccoPerTipo(doc.blocks[j], context);
-    }
-    return trovato;
-  };
   var creaFunzioneValutazione = function (lhs, rhs, points) {
     return function (d) {
       var l,
@@ -212,7 +201,6 @@
     aggiungiTest(test);
   }
   var invia = function () {
-    //var risultato = converti_e_valuta();
     var prova = {
       classe: document.getElementById('classe').value,
       nome: document.getElementById('nome').value,
@@ -228,84 +216,66 @@
     document.getElementById('form').action = 'https://script.google.com/a/savoiabenincasa.it/macros/s/AKfycbwCadXpofT_08X9n0O-CXqLvm08EvZ9M0BcbplgwQjimBYAwVn1/exec';
     document.getElementById('form').submit();
   }
-  var mostraValutazione = function () {
-    var dom = document.getElementById('render');
-    var punteggio = {
-    };
-    console.log(dom.title);
-    var punti = 0,
-    puntiTotali = 0,
-    j,
-    parziale,
-    statusId,
-    pointsId;
-    for (j = 0; j < tests.length; j += 1) {
-      puntiTotali += tests[j].points;
-      parziale = tests[j].evaluate(dom);
-      statusId = 'status-row-' + (j + 1);
-      pointsId = 'points-row-' + (j + 1);
-      if (parziale !== 0) {
-        punti += parziale;
-        document.getElementById(statusId).textContent = 'PASS';
-        document.getElementById(statusId).setAttribute('class', 'pass');
-        document.getElementById(pointsId).textContent = parziale;
-        tests[j].passed = true;
-      } else {
-        document.getElementById(statusId).textContent = 'FAIL';
-        document.getElementById(statusId).setAttribute('class', 'fail');
-        document.getElementById(pointsId).textContent = 0;
-        tests[j].passed = false;
-      }
-    }
-    punteggio = {
-      punti: punti,
-      scala: puntiTotali
-    };
-    aggiornaTabellaConSomma(punteggio.punti, punteggio.scala);
-  };
-  var modificaSorgenteIframe = function () {
-    var inLocale = false;
-    if (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.hostname === '')
-    inLocale = true;
-    if (!inLocale && (document.getElementById('nome').value === '' || document.getElementById('cognome').value === '')) {
-      alert('Inserisci il nome e il cognome!');
-      return;
-    }
-    var preview = document.getElementById('render');
-    var content = codemirror.doc.getValue();
-    if (content === '') {
-      alert('Aggiungere del testo');
-      return;
-    }
-    preview.srcdoc = content;
-    // Quando l'iframe è pronto deve essere richiamata la valutazione
-  };
   // 1 - Titolo
   creaTest('Titolo', 'Inserisci il titolo: <code>Verifica di <em>Nome</em> ' +
-  '<em>Cognome</em>.', 3, function (d) {
-    //console.log(d);
-    //var titolo = d.getElementsByTagName("title")[0];
-    //console.log(titolo);
-    return 'prova di ';
-  }, 'prova di ');
-  // 4 - Paragrafi e sotto paragrafi
-  creaTest('Paragrafo', 'Inserisci un paragrafo dal titolo <code>Paragrafo</code>', 1, function (doms) {
+  '<em>Cognome</em></code>.', 1, function (d) {
+    console.log(d.title);
+    return d.title.substr(0, 12).toLowerCase();
+  }, 'verifica di ');
+  // 2 - Charset
+  creaTest('charset', 'Usa la codifica dei caratteri: <code>utf-8</code>.', 1, function (d) {
+    var metas = d.getElementsByTagName('meta');
+    for (var j = 0; j < metas.length; j++) {
+      var attributes = metas[j].attributes;
+      for (var i = 0; i < attributes.length; i++) {
+        if (attributes[i].name == 'charset') {
+          console.log(attributes[i].nodeValue);
+          return attributes[i].nodeValue.toUpperCase();
+        }
+      }
+    }
+    return 'errore';
+  }, 'UTF-8');
+  // 3 - Intestazioni
+  creaTest('Intestazione livello 1', 'Inserisci nel corpo della pagina un\'intestazione di livello 1 dal con contenuto <code>Intestazione di primo livello</code>', 1, function (d) {
+    if (d.body.getElementsByTagName("h1").length) {
+      console.log(d.body.getElementsByTagName("h1")[0].innerText.toLowerCase());
+      return d.body.getElementsByTagName("h1")[0].innerText.toLowerCase();
+    }
     return '';
-  }, 'paragrafo');
-  creaTest('Sotto-Paragrafo', 'Inserisci un sotto-paragrafo dal titolo <code>Sotto-paragrafo</code>', 1, function (doms) {
+  }, 'intestazione di primo livello');
+  creaTest('Intestazione livello 2', 'Inserisci nel corpo della pagina un\'intestazione di livello 2 dal con contenuto <code>Intestazione di secondo livello</code>', 1, function (d) {
+    if (d.body.getElementsByTagName("h2").length) {
+      console.log(d.body.getElementsByTagName("h2")[0].innerText.toLowerCase());
+      return d.body.getElementsByTagName("h2")[0].innerText.toLowerCase();
+    }
     return '';
-  }, 'sotto-paragrafo');
-  creaTest('Sotto-Sotto-Paragrafo', 'Inserisci un sotto-sotto-paragrafo dal titolo <code>Sotto-sotto-paragrafo</code>', 1, function (doms) {
+  }, 'intestazione di secondo livello');
+  creaTest('Intestazione livello 3', 'Inserisci nel corpo della pagina un\'intestazione di livello 3 dal con contenuto <code>Intestazione di terzo livello</code>', 1, function (d) {
+    if (d.body.getElementsByTagName("h3").length) {
+      console.log(d.body.getElementsByTagName("h3")[0].innerText.toLowerCase());
+      return d.body.getElementsByTagName("h3")[0].innerText.toLowerCase();
+    }
     return '';
-  }, 'sotto-sotto-paragrafo');
+  }, 'intestazione di terzo livello');
+  
+  // 4 - Capoverso con id "capoverso_1"
+  creaTest('Capoverso #capoverso_1', 'Inserisci nel corpo della pagina un capoverso con id <code>capoverso_1</code>', 1, function (d) {
+    if (d.getElementById("capoverso_1")) {
+      console.log(d.getElementById("capoverso_1").tagName);
+      return d.getElementById("capoverso_1").tagName.toLowerCase();
+    }
+    return '';
+  }, 'p');
+  
   // 5 - Elenchi
-  creaTest('Elenco non ordinato', 'Inserisci un elenco non ordinato con primo elemento <code>Primo</code>', 1, function (doms) {
+  creaTest('Elenco non ordinato', 'Inserisci un elenco non ordinato con primo elemento <code>Primo</code>', 1, function (d) {
     return '';
   }, 'primo');
-  creaTest('Elenco ordinato', 'Inserisci un elenco ordinato con secondo elemento <code>due</code>. Inseriscilo in una nuova sezione', 1, function (doms) {
+  creaTest('Elenco ordinato', 'Inserisci un elenco ordinato con secondo elemento <code>due</code>', 1, function (d) {
     return '';
   }, 'due');
-  creaTest('Elenco descrittivo', 'Inserisci un elenco descrittivo con il termine <code>termine</code> e descrizione <code>descrizione</code>. Inseriscilo in una nuova sezione', 1, function (doms) {
+  creaTest('Elenco descrittivo', 'Inserisci un elenco descrittivo con il termine <code>termine</code> e descrizione <code>descrizione</code>', 1, function (d) {
     return {
     };
   }, {
@@ -313,15 +283,15 @@
     d: 'descrizione'
   });
   // Neretto
-  creaTest('Neretto', 'Inserisci un capoverso con la parola <code>neretto</code> in neretto', 1, function (doms) {
+  creaTest('Neretto', 'Inserisci un capoverso con la parola <code>neretto</code> in neretto', 1, function (d) {
     return '';
   }, 'neretto');
   // Corsivo
-  creaTest('Corsivo', 'Inserisci un capoverso con la parola <code>corsivo</code> in corsivo', 1, function (doms) {
+  creaTest('Corsivo', 'Inserisci un capoverso con la parola <code>corsivo</code> in corsivo', 1, function (d) {
     return '';
   }, 'corsivo');
   // A capo
-  creaTest('A capo', 'Inserisci un capoverso che va a capo', 1, function (doms) {
+  creaTest('A capo', 'Inserisci un capoverso che va a capo', 1, function (d) {
     /*
       var d = doms.html_dom;
       // Cerca nel DOM HTML
@@ -385,9 +355,7 @@
   };
   document.getElementById('converti_e_valuta').addEventListener('click', converti);
   document.getElementById('render').addEventListener('load', function () {
-    console.log('\n\nVALUTA\n\n');
-    modello.body = document.getElementById('render').contentDocument.body;
-    console.log(modello);
+    modello = document.getElementById('render').contentDocument;
     var punti = 0,
     puntiTotali = 0,
     j,
@@ -420,6 +388,7 @@
       invio = false;
       invia();
     }
+    codemirror.refresh();
   });
   document.getElementById('invia').addEventListener('click', function () {
     invio = true;

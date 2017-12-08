@@ -51,7 +51,7 @@
    * Modalità e opzioni di CodeMirror
    */
   var mixedMode = {
-    name: 'htmlmixed',
+    name: 'css',
     tags: {
       style: [
         ['type', /^text\/(x-)?scss$/, 'text/x-scss'],
@@ -242,62 +242,115 @@
     document.getElementById('form').submit();
   };
 
-  // 1 - Selettore universale e font
-  creaTest('Font per tutti', '<strong>Tutti i tag</strong> presentano il contenuto con il font della famiglia: <code>Garamond</code>.', 1, function (d) {
-      var ret = "";
-      if (!d.styleSheets.length) {
+  var selPropVal = function (ss, selettore, proprieta) {
+    if (ss.length === 0) {
+      return "";
+    }
+    var css = ss[0];
+    var rules = css.cssRules;
+    for (var j = 0; j < rules.length; j++) {
+      if (rules[j].selectorText === selettore) {
+        var ret = rules[j].style[proprieta];
+        if (ret[0] === "\"") {
+          ret = ret.substr(1, ret.length - 2);
+        }
+        console.log(rules[j].selectorText, "{" +
+          proprieta + ": " + ret + "}");
         return ret;
       }
-      var ss = d.styleSheets[0];
-      var rules = ss.cssRules;
-      for (var j = 0; j < rules.length; j++) {
-        if (rules[j].selectorText === "*") {
-          console.log(rules[j]);
-          ret = rules[j].style.fontFamily;
-          return ret;
-        }
-      }
-      return ret;
+    }
+  };
+
+  //  1 - Selettore universale e font
+  creaTest('Font per tutti', '<strong>Tutti i tag</strong> presentano il contenuto con il font della famiglia: <code>Garamond</code>.', 1, function (d) {
+      return selPropVal(d.styleSheets, "*", "fontFamily");
     },
     "Garamond");
-  // 2 - p colore blue
-  creaTest('Capoversi colore blue', 'Tutti i <strong>capoversi</strong> devono avere colore <code>blue</code>.', 1, function (d) {
-      var ret = "";
-      if (!d.styleSheets.length) {
-        return ret;
-      }
-      var ss = d.styleSheets[0];
-      var rules = ss.cssRules;
-      for (var j = 0; j < rules.length; j++) {
-        if (rules[j].selectorText === "p") {
-          console.log(rules[j]);
-          ret = rules[j].style.color;
-          return ret;
-        }
-      }
-      return ret;
+  //  2 - p colore blue
+  creaTest('Capoversi colore blue', 'Tutti i <strong>capoversi</strong> devono avere colore <code>white</code>.', 1, function (d) {
+      return selPropVal(d.styleSheets, "p", "color");
+    },
+    "white"
+  );
+  //  3 - p colore di sfondo lightgray
+  creaTest('Capoversi con sfondo lightgray', 'Tutti i <strong>capoversi</strong> devono avere colore di sfondo <code>lightgray</code>.', 1, function (d) {
+      return selPropVal(d.styleSheets, "p", "backgroundColor");
+    },
+    "lightgray"
+  );
+  //  4 - p { padding: 10px; }
+  creaTest('Spaziatura interna capoversi', 'Tutti i <strong>capoversi</strong> devono avere una spaziatura interna di <code>10</code> pixel per lato.', 1, function (d) {
+      return selPropVal(d.styleSheets, "p", "padding");
+    },
+    "10px"
+  );
+  //  5 - p { margin: 10px; }
+  creaTest('Margine capoversi', 'Tutti i <strong>capoversi</strong> devono avere i margini di <code>15</code> pixel per lato.', 1, function (d) {
+      return selPropVal(d.styleSheets, "p", "margin");
+    },
+    "15px"
+  );
+  //  6 - strong { font-size: 3em; }
+  creaTest('Dimensione font strong', 'Tutti gli elementi con tag <strong>strong</strong> devono avere font di dimensione <code>3</code> em.', 1, function (d) {
+      return selPropVal(d.styleSheets, "strong", "fontSize");
+    },
+    "3em"
+  );
+  //  7 - div { width: 75%; }
+  creaTest('Larghezza div', 'Tutti gli elementi con tag <strong>div</strong> devono essere ampi il <code>75%</code> dell\'elemento contenitore.', 1, function (d) {
+      return selPropVal(d.styleSheets, "div", "width");
+    },
+    "75%"
+  );
+  //  8 - div { text-align: center; }
+  creaTest('Allineamento testo div', 'Tutti gli elementi con tag <strong>div</strong> devono essere allineati al centro.', 1, function (d) {
+      return selPropVal(d.styleSheets, "div", "textAlign");
+    },
+    "center"
+  );
+  //  9 - div { border: 10px solid red; }
+  creaTest('Bordo div', 'Tutti gli elementi con tag <strong>div</strong> devono avere bordo di colore rosso, ampiezza 10 pixel e linea continua.', 3, function (d) {
+      return selPropVal(d.styleSheets, "div", "border");
+    },
+    "10px solid red"
+  );
+  // 10 - div { padding: 20px; }
+  creaTest('Spaziatura interna div', 'Tutti gli elementi con tag <strong>div</strong> devono avere una spaziatura interna di <code>20</code> pixel per lato.', 1, function (d) {
+      return selPropVal(d.styleSheets, "div", "padding");
+    },
+    "20px"
+  );
+  // 11 - div { border-radius: 25px; }
+  creaTest('Bordi smussati div', 'Tutti gli elementi con tag <strong>div</strong> devono avere una bordi smussati di raggio <code>25</code> pixel.', 1, function (d) {
+      return selPropVal(d.styleSheets, "div", "padding");
+    },
+    "20px"
+  );
+  // 12 - #p1 { color: blue; }
+  creaTest('Elemento id="p1"', 'Tutti gli elementi con <em>id</em> <strong>p1</strong> devono essere colorati di <em>blu</em>.', 1, function (d) {
+      return selPropVal(d.styleSheets, "#p1", "color");
     },
     "blue"
   );
-  // 3 - p colore di sfondo grey
-  creaTest('Capoversi con sfondo grey', 'Tutti i <strong>capoversi</strong> devono avere colore di sfondo <code>grey</code>.', 1, function (d) {
-      var ret = "";
-      if (!d.styleSheets.length) {
-        return ret;
-      }
-      var ss = d.styleSheets[0];
-      var rules = ss.cssRules;
-      for (var j = 0; j < rules.length; j++) {
-        if (rules[j].selectorText === "p") {
-          console.log(rules[j]);
-          ret = rules[j].style.backgroundColor;
-          return ret;
-        }
-      }
-      return ret;
+  // 13 - #p2 { color: yellow; }
+  creaTest('Elemento id="p2"', 'Tutti gli elementi con <em>id</em> <strong>p2</strong> devono essere colorati di <em>giallo</em>.', 1, function (d) {
+      return selPropVal(d.styleSheets, "#p2", "color");
     },
-    "grey"
+    "yellow"
   );
+  // 14 - #p3 { color: orange; }
+  creaTest('Elemento id="p3"', 'Tutti gli elementi con <em>id</em> <strong>p3</strong> devono essere colorati di <em>arancione</em>.', 1, function (d) {
+      return selPropVal(d.styleSheets, "#p3", "color");
+    },
+    "orange"
+  );
+  // 15 - .colora {color: brown;}
+  creaTest('Elemento classe "color"', 'Tutti gli elementi di classe <strong>colora</strong> devono essere colorati di <em>marrone</em>.', 1, function (d) {
+      return selPropVal(d.styleSheets, ".colora", "color");
+    },
+    "brown"
+  );
+  
 
   document.getElementById('fonts').disabled = true;
   document.getElementById('cambiafont').onclick = function () {
