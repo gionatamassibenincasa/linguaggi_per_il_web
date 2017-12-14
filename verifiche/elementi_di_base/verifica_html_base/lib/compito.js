@@ -1,13 +1,47 @@
 // jshint esversion: 6
 (function () {
   'use strict';
+
+  /**
+    * Prestare attenzione alla dislessia.
+    *
+    * Permetti la scelta del font con un sottoinsieme da http://dyslexiahelp.umich.edu/sites/default/files/good_fonts_for_dyslexia_study.pdf
+    */
+  // Aggiungi un event listener quando cambia la scelta del carattere
+  document.getElementById("scelta-font").addEventListener("change", function() {
+    var ff = document.getElementById("scelta-font").value;
+    var odf = document.querySelector('#opendyslexic-fonts');
+    if (ff == "opendyslexic") {
+      odf && (odf.disabled = false);
+    } else {
+      odf && (odf.disabled = true);
+    }
+
+    var ss = document.styleSheets;
+    if (ss.length === 0) {
+        return;
+    }
+    var css = ss[0];
+    var rules = css.cssRules;
+    var ss = document.styleSheets;
+    for (var j = 0; j < rules.length; j++) {
+      if (rules[j].selectorText === '*') {
+       rules[j].style["font-family"] = ff;
+      }
+    }
+  });
+  // Disabilita OpenDyslexic (default per link stylesheet)
+  var odf = document.querySelector('#opendyslexic-fonts');
+  odf && (odf.disabled = true);
+  // Setta i font di default
+  document.querySelector("#scelta-font") && (document.querySelector("#scelta-font").value = "");
+
+  /**
+   * Ripristino del codice sorgente, se salvato nel local storage
+   */
   document.getElementById("editor").innerHTML =
     localStorage[window.location.href.split('#')[0]] || "";
 
-  /**
-   * L'elemento che mostra l'output
-   */
-  var preview = document.getElementById('render');
   /**
    * Il salvataggio del codice sorgente
    */
@@ -25,10 +59,10 @@
     editor.on('change', localSave);
   };
   /**
-   * Aggiorna la visualizzazione dell'output
+   * Imposta il codice HTML per la visualizzazione dell'output
    */
   var visualizzaOutput = function (inputText) {
-    preview.srcdoc = inputText;
+    document.getElementById('render').srcdoc = inputText;
   };
   /**
    * Aggiorna la visualizzazione dell'output
@@ -41,7 +75,6 @@
    * Callback per l'aggiornamento dell'output ad ogni modifica del file sorgente
    */
   var addPreview = function (editor) {
-    //editor.setValue(preview);
     editor.on('change', aggiorna);
   };
   /**
@@ -58,6 +91,8 @@
   };
   /**
    * Istanziazione dell'editor
+   *
+   * I dati del local storage devono essere caricati precedentemente in #editor
    */
   var codemirror = CodeMirror.fromTextArea(document.getElementById('editor'), {
     //value: "\n",
@@ -202,10 +237,45 @@
     test.evaluate = creaFunzioneValutazione(assertionLhs, assertionRhs, points);
     aggiungiTest(test);
   };
+
+  var valuta = function (event) {
+console.log(event);
+    modello = document.getElementById('render').contentDocument;
+    var punti = 0,
+      puntiTotali = 0,
+      j, parziale, statusId, pointsId;
+    for (j = 0; j < tests.length; j += 1) {
+      puntiTotali += tests[j].points;
+      parziale = tests[j].evaluate(modello);
+      statusId = 'status-row-' + (j + 1);
+      pointsId = 'points-row-' + (j + 1);
+      if (parziale !== 0) {
+        punti += parziale;
+        document.getElementById(statusId).textContent = 'PASS';
+        document.getElementById(statusId).setAttribute('class', 'pass');
+        document.getElementById(pointsId).textContent = parziale;
+        tests[j].passed = true;
+      } else {
+        document.getElementById(statusId).textContent = 'FAIL';
+        document.getElementById(statusId).setAttribute('class', 'fail');
+        document.getElementById(pointsId).textContent = 0;
+        tests[j].passed = false;
+      }
+    }
+    punteggio.punti = punti;
+    punteggio.scala = puntiTotali;
+    //console.log(punteggio);
+    aggiornaTabellaConSomma(punteggio.punti, punteggio.scala);
+  }
   /**
    * Sottomette la prova
    */
   var sottometti = function () {
+    if (invio) {
+      invio = false;
+    } else {
+      return;
+    }
     var inLocale = false;
     if (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.hostname === "") {
       inLocale = true;
@@ -238,12 +308,143 @@
     }
     document.getElementById('form').submit();
   };
+
+  document.getElementById('render').addEventListener('load', valuta);
+  document.getElementById('invia').addEventListener('click', function () {
+    valuta();
+    invio = true;
+    sottometti();
+  });
+
+  /** SPERIMENTALE **/
+  var selPropValCSS = function (ss, selettore, proprieta, valore) {
+    if (ss.length === 0) {
+      return false;
+    }
+    var css = ss[0];
+    var rules = css.cssRules;
+    for (var j = 0; j < rules.length; j++) {
+      if (rules[j].selectorText === selettore) {
+        var ret = rules[j].style[proprieta];
+        if (ret[0] === "\"") {
+          ret = ret.substr(1, ret.length - 2);
+        }
+        console.log(rules[j].selectorText, "{" +
+          proprieta + ": " + ret + "}");
+        return ret === valore;
+      }
+    }
+  };
+
+  var selPropValHTML = function (d, selettore, valore, fn_modifica_testo) {
+    // Caso base - stringa
+    if (typeof valore === "string") {
+      var e = d.querySelector(selettore);
+      if (!e) return false;
+    
+      var valore_attuale = e.innerText.toLowerCase();
+      if (fn_modifica_testo) {
+        valore_attuale = fn_modifica_testo(valore_attuale);
+      }
+      var ret = valore_attuale === valore.toLowerCase();
+      console.log(selettore + " : " + e.innerText + " // atteso: " + valore + " // test " + (ret?"PASSATO":"FALLITO"));
+      return ret;
+    }
+    // Caso base - oggetto con proprieta dell'elemento DOM
+    if (typeof valore === "object" && !Array.isArray(valore)) {
+      for (const prop in valore) {
+        if (!prop in e || e.prop.toLowerCase() != valore.prop.toLowerCase())
+          return false;
+        console.log(selettore + " : " + e[prop] + " // atteso: " + valore[prop] + " // test PASSATO");
+      }
+      return true;
+    }
+    // Caso ricorsivo - Array di selettori
+    if (Array.isArray(selettore) && Array.isArray(valore) && selettore.length === valore.length) {
+      for (var s = 0; s < selettore.length; s++) {
+        if (!selPropValHTML(d, selettore[s], valore[s])) {
+          return false;
+        }
+      }
+      return true;
+    }
+  };
+
+  var cercaRegExp = function (testo, regExp, estraiTesto) {
+    if (estraiTesto) {
+      testo = estraiTesto(testo);
+    }
+    if (regExp.test(testo)) {
+      console.log(regExp + " : " + testo);
+      return true;
+    }
+    return false;
+  };
+
+  var quesiti = [
+    { // <!DOCTYPE html>
+      descrBreve: "Tipo di documento",
+      descrizione: "Dichiara il <strong>tipo di documento</strong> in modo che il browser lo riconosca come <code>HTML</code>.",
+      punti: 1,
+      fn_valutazione: function (d) {
+        var unparsedText = document.querySelector("#render").getAttribute("srcdoc");
+        cercaRegExp(unparsedText, /<!DOCTYPE\s+html>/, function (testo) {
+         return testo.slice(0, testo.indexOf("\n"));
+        })
+      }
+    },
+    { // Titolo della pagina web
+      descrBreve: "Titolo",
+      descrizione: "Inserisci il <strong>titolo</strong>: <code>Verifica di <em>Nome Cognome</em></code>.",
+      punti: 1,
+      fn_valutazione: function (d) {
+        return selPropValHTML(d, "html > head > title", "Verifica di ", function(str) { return str.slice(0, 12); });
+      }
+    },
+    { // Annidare correttamente div p span
+      descrBreve: "body div > p > span",
+      descrizione: "Crea un elemento <code>div</code> con annidato un elemento <code>p</code> con annidato un element <code>span</code>. Il contenuto dell'ultimo elemento è <code>span dentro p dentro div</code>",
+      punti: 3,
+      fn_valutazione: function (d) {
+        return selPropValHTML(d, "body div > p > span", "span dentro p dentro div");
+      }
+    },
+    { // Creare una tabella con intestazione e almeno una riga con una cella
+      descrBreve: "Tabella",
+      descrizione: "Inserisci una <strong>tabella</strong> composta di un'<strong>intestazione</strong> e di un <strong>corpo</strong>; l'intestazione contiente una <strong>cella d'intestazione</strong> con testo <code>colonna 1</code>; il corpo contiene una <strong>cella</strong> con testo <code>dato 1</code>",
+      punti: 3,
+      fn_valutazione: function (d) {
+        //console.log(new Error().stack);
+        return selPropValHTML(d, ["table > thead > tr > th", "table > tbody > tr > td"], ['colonna 1', 'dato 1']);
+      }
+    }
+  ];
+
+  for (let j = 0; j < quesiti.length; j++) {
+    let q = quesiti[j];
+    let test = {
+      shortText: q.descrBreve,
+      text: q.descrizione,
+      points: q.punti,
+      passed: false,
+      index: j,
+      evaluate: function (d) {
+       'use strict';
+       var pass = q.fn_valutazione(d);
+       return pass?q.punti:0;
+      }
+    };
+    aggiungiTest(test);
+  }
+
+/*
   // 1 - Titolo
   creaTest('Titolo', 'Inserisci il <strong>titolo</strong>: <code>Verifica di <em>Nome</em> ' + '<em>Cognome</em></code>.', 1, function (d) {
     if (d.title)
       console.log(d.title);
     return d.title.substr(0, 12).toLowerCase();
   }, 'verifica di ');
+*/
   // 2 - Charset
   creaTest('charset', 'Dichiara la <strong>codifica dei caratteri</strong>: <code>utf-8</code>.', 1, function (d) {
     var metas = d.getElementsByTagName('meta');
@@ -416,53 +617,9 @@
     th: 'colonna 1',
     td: 'dato 1'
   });
-  document.getElementById('fonts').disabled = true;
-  document.getElementById('cambiafont').onclick = function () {
-    var sheet = document.getElementById('fonts');
-    if (sheet.disabled) {
-      sheet.disabled = false;
-    } else {
-      sheet.disabled = true;
-    }
-  };
 
-  document.getElementById('render').addEventListener('load', function () {
-    modello = document.getElementById('render').contentDocument;
-    var punti = 0,
-      puntiTotali = 0,
-      j, parziale, statusId, pointsId;
-    for (j = 0; j < tests.length; j += 1) {
-      puntiTotali += tests[j].points;
-      parziale = tests[j].evaluate(modello);
-      statusId = 'status-row-' + (j + 1);
-      pointsId = 'points-row-' + (j + 1);
-      if (parziale !== 0) {
-        punti += parziale;
-        document.getElementById(statusId).textContent = 'PASS';
-        document.getElementById(statusId).setAttribute('class', 'pass');
-        document.getElementById(pointsId).textContent = parziale;
-        tests[j].passed = true;
-      } else {
-        document.getElementById(statusId).textContent = 'FAIL';
-        document.getElementById(statusId).setAttribute('class', 'fail');
-        document.getElementById(pointsId).textContent = 0;
-        tests[j].passed = false;
-      }
-    }
-    punteggio.punti = punti;
-    punteggio.scala = puntiTotali;
-    //console.log(punteggio);
-    aggiornaTabellaConSomma(punteggio.punti, punteggio.scala);
-    if (invio) {
-      invio = false;
-      sottometti();
-    }
-  });
-  document.getElementById('invia').addEventListener('click', function () {
-    invio = true;
-    sottometti();
-  });
   codemirror.refresh();
   codemirror.save();
   aggiorna(codemirror);
+
 })();

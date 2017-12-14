@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="it">
 
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Verifica d'informatica</title>
-  <link rel="stylesheet" href="lib/fonts.css" type="text/css" id="fonts">
+  <style>* { font-family: "";}</style>
+  <link rel="stylesheet" href="lib/fonts.css" type="text/css" id="opendyslexic-fonts" disabled>
   <link rel="stylesheet" href="lib/compito.css" type="text/css">
   <link rel="stylesheet" href="lib/codemirror.css" type="text/css">
   <link rel="stylesheet" href="addon/hint/show-hint.css">
@@ -33,7 +34,8 @@
         <textarea id="json" name="json" hidden=""></textarea>
         <input id="punti" name="punti" type="number" min="0" hidden="" />
       </form>
-      <button id="cambiafont">Cambia font</button>
+      <!-- Dislessia -->
+      <label for="scelta-font">Scegli il carattere tipografico: </label><select id="scelta-font"><option value="">Browser default</option><option value="Arial">Arial</option><option value="Helvetica">Helvetica</option><option value="opendyslexic">Open Dyslexic</option><option value="Verdana">Verdana</option></select>
     </div>
     <!-- dati_alunno -->
     <div class="specifiche">

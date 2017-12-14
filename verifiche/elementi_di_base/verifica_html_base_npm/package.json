@@ -1,0 +1,28 @@
+{
+  "name": "verifica_linguaggi_web",
+  "version": "1.0.0",
+  "description": "Un framework per erogare verifiche sui linguaggi del web con valutazione oggettiva e automatizzata",
+  "main": "index.js",
+  "scripts": {
+    "babel": "babel --presets es2015 js/main.js -o build/main.bundle.js",
+    "build": "webpack --progress -p",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "server": "webpack-dev-server --open",
+    "watch": "webpack --progress --watch",
+    "webpack": "webpack"
+  },
+  "author": "Gionata Massi <gionata.massi@savoiabenincasa.it>",
+  "license": "ISC",
+  "dependencies": {
+    "babel-core": "^6.26.0",
+    "babel-runtime": "^6.26.0",
+    "codemirror": "^5.32.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-loader": "^7.1.2",
+    "babel-preset-env": "^1.6.1",
+    "webpack": "^3.10.0",
+    "webpack-dev-server": "^2.9.7"
+  }
+}
