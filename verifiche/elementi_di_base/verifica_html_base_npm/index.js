@@ -1,3 +1,5 @@
+import * as compiti from './lista_quesiti';
+
 class Alunno {
     constructor(nome, cognome) {
         this.nome = nome;
@@ -112,7 +114,6 @@ class Pagina {
                     default:
                         disabilitaOpenDyslexic();
                 }
-                //console.log('Nuovo font: ', ff);
                 let trovato = false;
                 let css = undefined;
                 const ss = document.styleSheets;
@@ -120,14 +121,11 @@ class Pagina {
                     css = ss[j];
                     if (css.ownerNode && css.ownerNode.getAttribute('id') && css.ownerNode.getAttribute('id') === idStileInterno) {
                         trovato = true;
-                        //console.log(css);
                         break;
                     }
                 }
-                //console.log('CSS#' + idStileInterno, trovato);
                 if (trovato) {
                     const rules = css.cssRules;
-                    //console.log(rules);
                     for (let j = 0; j < rules.length; j++) {
                         let rule = rules[j];
                         //if (rule.selectorText[0] === ':') {
@@ -186,6 +184,7 @@ class Pagina {
     }
 
     aggiornaPunteggioMassimo(valore) {
+        this.scala = valore;
         document.querySelector('#descr-stats-punteggio-massimo').textContent = '/' + valore;
     }
 
@@ -207,6 +206,10 @@ class Pagina {
                     specim.setAttribute('class', 'fail');
                 }
             });
+            let pg = punteggi.reduce((v, s) => v + s);
+            document.querySelector('#descr-stats-punteggio-grezzo').textContent = pg;
+            document.querySelector('#voto').textContent = 10 * pg / this.scala;
+
         } catch (e) {
             console.log(e.message);
         }
@@ -276,7 +279,7 @@ class Correttore {
                     let elts = radice.querySelectorAll(selettore);
                     for (let j = 0; j < elts.length; j++) {
                         let elt = elts[j];
-                        let testo = elt.innerText;
+                        let testo = elt.innerHTML; // Preserva tag HTML
                         if (preElaborazione) {
                             testo = preElaborazione(testo);
                         }
@@ -305,12 +308,10 @@ class Correttore {
                 let chiave = coppieChiaveValore[0];
                 let valore = coppieChiaveValore[1];
                 let elts = radice.querySelectorAll(selettore);
-                //console.log(elts);
                 if (typeof chiave === "string") {
                     // Caso base - chiave di tipo stringa
                     for (let j = elts.length - 1; j > -1; j++) {
                         let elt = elts[j];
-                        //console.log(elt);
 
                         // console.log('Caso base');
                         let valore_attuale = elt.getAttribute(chiave);
@@ -348,6 +349,43 @@ class Correttore {
                 */
             };
 
+            let analizzatoreDOMAttributoContenuto = function (attributo, contenuto, radice, selettore) {
+                'use strict';
+                let verificaAttributi = function (elt) {
+                    let chiave = attributo[0];
+                    if (typeof chiave === "string") {
+                        // Caso base - chiave di tipo stringa
+                        let valore_atteso = attributo[1];
+                        let valore_attuale = elt.getAttribute(chiave);
+                        return valore_atteso.test(valore_attuale);
+                    } else { // Caso ricorsivo - array di attributi
+                        /*
+                        if (Array.isArray(chiave)) {
+                            for (let j = 0; j < chiave.length; j++) {
+                                console.log('caso base');
+                                if (!((attributo[0][j]).test(attributo[1][j])))
+                                    return false;
+                            }
+                            return true;
+                        } else {
+                            throw new Error('Atteso array');;
+                        }
+                        */
+                        return false;
+                    }
+                };
+
+                let elts = radice.querySelectorAll(selettore);
+                // cerca l'elemento con contenuto dato
+                for (let j = elts.length - 1; j > -1; j--) {
+                    let elt = elts[j];
+                    if (contenuto.test(elt.textContent)) {
+                        return verificaAttributi(elt);
+                    }
+                }
+                return false;
+            };
+
             let soddisfatta = false;
             if (!specifica.struttura_per_valutazione.hasOwnProperty('modello')) {
                 throw new Error('Passami il tipo di modello di analisi (PLAINTEXT, DOM, CSSDOM, ASCIIDOC...)');
@@ -360,40 +398,51 @@ class Correttore {
                         break;
                     case 'DOM':
                         let radice = pagina.DOM;
-                        if (specifica.struttura_per_valutazione.analisi === 'Contenuto') {
-                            soddisfatta = analizzatoreDOMContenuto(specifica.struttura_per_valutazione.contenuto, radice, specifica.struttura_per_valutazione.selettore, specifica.struttura_per_valutazione.callback);
-                        } else if (specifica.struttura_per_valutazione.analisi === 'Attributo') {
-                            soddisfatta = analizzatoreDOMAttributo(specifica.struttura_per_valutazione.coppieChiaveValore, radice, specifica.struttura_per_valutazione.selettore, specifica.struttura_per_valutazione.callback);
+                        switch (specifica.struttura_per_valutazione.analisi) {
+                            case 'Contenuto':
+                                soddisfatta = analizzatoreDOMContenuto(specifica.struttura_per_valutazione.contenuto, radice, specifica.struttura_per_valutazione.selettore, specifica.struttura_per_valutazione.callback);
+                                break;
+                            case 'Attributo':
+                                soddisfatta = analizzatoreDOMAttributo(specifica.struttura_per_valutazione.coppieChiaveValore, radice, specifica.struttura_per_valutazione.selettore, specifica.struttura_per_valutazione.callback);
+                                break;
+                            case 'AttributoContenuto':
+                                soddisfatta =
+                                    analizzatoreDOMAttributoContenuto(specifica.struttura_per_valutazione.coppieChiaveValore, specifica.struttura_per_valutazione.contenuto, radice, specifica.struttura_per_valutazione.selettore);
+                                break;
+                            default:
+                                throw new Error('Funzione di analisi non riconosciuta ' + specifica.struttura_per_valutazione.analisi);
                         }
                         break;
                     default:
-                        throw new Error('Modello di analisi non riconosciuto');
+                        throw new Error('Modello di analisi non riconosciuto ' + specifica.struttura_per_valutazione.modello);
                 }
             } catch (e) {
                 console.log(e);
             } finally {
                 // aggiorna visualizzazione
                 if (soddisfatta) {
-                    registro += ' > SODDISFATTA :)';
+                    registro += ' || SODDISFATTA :)';
                     return specifica.quesito.punteggio;
                 } else {
-                    registro += ' > NON SODDISFATTA :(';
+                    registro += ' || NON SODDISFATTA :(';
                     return 0;
                 }
                 soddisfatta = false;
             }
         };
 
-        pagina.elementoVisualizzazioneOutput.addEventListener('load', function () {
+        this.pagina.elementoVisualizzazioneOutput.addEventListener('load', function () {
             // Attenzione, questa funzione non è un metodo di classe!
             // Le variabili membro possono essere ridefinite come locali sopra
             let punteggio_parziale = 0;
             let punteggi = [];
             specifiche.forEach(function (spec) {
-                registro = 'Spec. ' + (spec.indice + 1) + '. - ' + spec.quesito.descrizione_breve + ' > ';
+                registro = 'Spec. ' + (spec.indice + 1) + '. - ' + spec.quesito.descrizione_breve + ' || ';
                 let punti_risposta = analizza(spec, pagina);
                 punteggio_parziale += punti;
-                console.log(registro + ' > ' + punteggio_parziale);
+                if (document.verbose) {
+                    console.log(registro + ' || ' + punteggio_parziale);
+                }
                 punteggi.push(punti_risposta);
             });
             pagina.aggiornaPunteggio(punteggi);
@@ -424,200 +473,7 @@ let generaListaSpecifiche = function (lista) {
     return specifiche;
 };
 
-let lista_elementi_specifiche = [
-    { // <!DOCTYPE html>
-        quesito: {
-            descrizione_breve: 'Dichiarazione di tipo',
-            descrizione: 'Dichiarare il tipo di documento affinché il browser lo interpreti come <code>HTML</code>',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'PLAINTEXT', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                schema: /<!DOCTYPE\s+html>/i,
-                callback: function (d) {
-                    return d.slice(0, d.indexOf('\n'));
-                }
-            }
-        }
-    },
-    {
-        // Codifica dei caratteri
-        quesito: {
-            descrizione_breve: 'Codifica dei caratteri',
-            descrizione: 'Dichiarare la <strong>codifica dei caratteri</strong> &egrave; <code>utf-8</code>',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                analisi: 'Attributo',
-                selettore: 'html > head > meta',
-                coppieChiaveValore: ['charset', /^utf-8$/i],
-                callback: null
-            }
-        }
-    },
-    {
-        // Titolo
-        quesito: {
-            descrizione_breve: 'Titolo della pagina',
-            descrizione: 'Inserire l\'elemento del <strong>titolo della pagina</strong> rispettando la <span class="tooltip">grammatica HTML<span class="tooltiptext">in paricolare regole di annidamento degli elementi</span></span>. Il contenuto dell\'elemento titolo deve essere: <code>Verifica di <span class="tooltip"><em>Cognome&nbsp;&nbsp;Nome</em><span class="tooltiptext">Il tuo cognome seguito dal tuo nome</span></span></code>',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                analisi: 'Contenuto',
-                selettore: 'html > head > title',
-                contenuto: /Verifica\s+di\s+/i,
-                callback: null
-            }
-        }
-    },
-    { // Titoletti h1
-        //'Intestazione livello 1', 'Inserisci nel corpo della pagina un\'<strong>intestazione di livello 1</strong> dal con contenuto <code>Intestazione di primo livello</code>'
-        quesito: {
-            descrizione_breve: 'Titoletto livello 1',
-            descrizione: 'Inserire <strong>l\'intestazione di livello di sezionamento 1</strong> il contenuto dell\'elemento titolo deve essere: <code>Titoletto sezione 1</code>',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                analisi: 'Contenuto',
-                selettore: 'html > body > h1',
-                contenuto: /Titoletto\s+sezione\s+1/i,
-                callback: null
-            }
-        }
-    },
-    { // Titoletti h2
-        //'Intestazione livello 1', 'Inserisci nel corpo della pagina un\'<strong>intestazione di livello 1</strong> dal con contenuto <code>Intestazione di primo livello</code>'
-        quesito: {
-            descrizione_breve: 'Titoletto livello 2',
-            descrizione: 'Inserire <strong>l\'intestazione di livello di sezionamento 2</strong> il contenuto dell\'elemento titolo deve essere: <code>Titoletto sezione 1.1</code>',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                analisi: 'Contenuto',
-                selettore: 'html > body > h2',
-                contenuto: /Titoletto\s+sezione\s+1\.1/i,
-                callback: null
-            }
-        }
-    },
-    { // Titoletti h3
-        quesito: {
-            descrizione_breve: 'Titoletto livello 3',
-            descrizione: 'Inserire <strong>l\'intestazione di livello di sezionamento 3</strong> il contenuto dell\'elemento titolo deve essere: <code>Titoletto sezione 1.1.1</code>',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                analisi: 'Contenuto',
-                selettore: 'html > body > h3',
-                contenuto: /Titoletto\s+sezione\s+1\.1\.1/i,
-                callback: null
-            }
-        }
-    },
-    { // Capoverso con id
-        quesito: {
-            descrizione_breve: 'Capoverso con id',
-            descrizione: 'Inserire un elemento <strong>capoverso</strong> <em>identificato</em> da <code>primocapoverso</code>  il contenuto  deve essere: <code>Il primo capoverso.</code>',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                analisi: 'Contenuto',
-                selettore: 'html > body > p#primocapoverso',
-                contenuto: /Il\s+primo\s+capoverso/i,
-                callback: null
-            }
-        }
-    },
-    { // Elenchi non ordinati
-        quesito: {
-            descrizione_breve: 'Elenco non ordinato',
-            descrizione: 'Inserire un <strong>elenco non ordinato</strong> il cui <em>primo</em> <strong>elemento dell\'elenco</strong> sia <code>Cerchio</code>',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                analisi: 'Contenuto',
-                selettore: 'html > body ul > li',
-                contenuto: /cerchio/i,
-                callback: null
-            }
-        }
-    },
-    { // Elenchi ordinati
-        quesito: {
-            descrizione_breve: 'Elenco ordinato',
-            descrizione: 'Inserire un <strong>elenco ordinato</strong> il <em>terzo</em> <strong>elemento dell\'elenco</strong> sia <code>terzo</code>',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                analisi: 'Contenuto',
-                selettore: 'html > body ol > li:nth-of-type(3)',
-                contenuto: /terzo/i,
-                callback: null
-            }
-        }
-    },
-    { // Elenchi descrittivi
-        quesito: {
-            descrizione_breve: 'Elenco descrittivo',
-            descrizione: 'Inserire un <strong>elenco descrittivo</strong> con la definizione del <strong>termine</stong> <code>zero</code> con <strong>definizione</strong> <code>il primo numero naturale</code> ',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                analisi: 'Contenuto',
-                selettore: ['html > body dl > dt:nth-of-type(1)', 'html > body dl > dd:nth-of-type(1)'],
-                contenuto: [/^zero$/i, /^il\s+primo\s+numero\s+naturale/],
-                callback: null
-            }
-        }
-    },
-    { // Modifica del carattere tipografico
-        quesito: {
-            descrizione_breve: 'Enfasi',
-            descrizione: 'Inserire in un <strong>capoverso</strong> avente <em>classe</em> <code>enfasi</code> i blocchi di testo: <code>carattere in neretto</code>, <code>carattere in corsivo</code> e <code>carattere a spaziatura fissa</code>. I blocchi devono essere annotati per apparire nei rispettivi caratteri tipografici. Sono ammessi solo marcatori semantici',
-            competenza: '',
-            punteggio: 1
-        },
-        specifica: {
-            struttura_per_valutazione: {
-                modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
-                analisi: 'Contenuto',
-                selettore: ['html > body p.enfasi > strong', 'html > body p.enfasi > em', 'html > body p.enfasi > code'],
-                contenuto: [/^carattere in neretto$/i, /^carattere in corsivo$/i, /carattere a spaziatura fissa/i],
-                callback: null
-            }
-        }
-    },
-].slice(0, 100);
-let specifiche = generaListaSpecifiche(lista_elementi_specifiche);
+let specifiche = generaListaSpecifiche(compiti.lista_quesiti);
 pagina.aggiungiSpecifiche(specifiche);
 pagina.aggiungiValutazioni(specifiche);
 let configurazioneEditor = {
@@ -655,14 +511,14 @@ var addPreview = function (editor) {
 var editor = new Editor(configurazioneEditor, addPreview);
 // Sistema il cursore
 editor.codemirror.refresh();
-/*
-let observer = new MutationObserver(function (mutations) {
-    //console.log('mutations:', mutations);
-    editor.codemirror.refresh();
-});
-observer.observe(document.querySelector('.sorgente'), {
-    attributes: true
-});
-*/
 var correttore = new Correttore(specifiche, pagina, editor);
 correttore.abilita();
+let ridimensionaEditor = function () {
+    let editor = document.querySelectorAll('.CodeMirror')[0].CodeMirror;
+    let height = document.getElementById('descr-specs').clientHeight;
+    // set width & height
+    editor.setSize("100%", height);
+    editor.refresh();
+}
+window.addEventListener('resize', ridimensionaEditor);
+window.addEventListener('load', ridimensionaEditor);

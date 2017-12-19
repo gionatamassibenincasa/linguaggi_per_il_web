@@ -163,6 +163,11 @@
         color: white;
     }
 
+    li.pass {
+        background-color: rgba(8, 255, 15, 0.1);
+        color: rgb(53, 54, 54)
+    }
+
     .pass {
         background-color: rgba(8, 255, 15, 0.5);
         color: rgb(53, 54, 54)
