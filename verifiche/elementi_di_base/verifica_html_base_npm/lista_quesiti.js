@@ -1,3 +1,4 @@
+export const classe = 'S-6F';
 export const lista_quesiti = [
     { // <!DOCTYPE html>
         quesito: {
@@ -236,8 +237,7 @@ export const lista_quesiti = [
                 modello: 'DOM', // 'PLAINTEXT', 'DOM', 'CSSDOM', 'ASCIIDOC'
                 analisi: 'Attributo',
                 selettore: 'html > body img',
-                contenuto: /il progetto GNU/i,
-                coppieChiaveValore: [['src', 'alt'], [/http:\/\/www.gnu.org\/graphics\/gnu-head.jpg/, /la testa di uno gnu/]]
+                coppieChiaveValore: [['src', 'alt'], [/http:\/\/www.gnu.org\/graphics\/gnu-head.jpg/, /la testa di uno gnu/i]]
             }
         }
     },

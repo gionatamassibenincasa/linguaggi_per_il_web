@@ -42,13 +42,8 @@
             <label for="font-scelto">Scegli il carattere tipografico: </label><select id="font-scelto"><option value="">Browser default</option><option value="Arial">Arial</option><option value="Courier New">Courier New</option><option value="Helvetica">Helvetica</option><option value="Inconsolata">Inconsolata</option><option value="opendyslexic">Open Dyslexic</option><option value="Verdana">Verdana</option></select>
         </div>
         <div class="dati_alunno">
-            <form id="form" method="post">
-                <!--label for="classe">Classe:</label--><input type="text" id="classe" name="classe" value="S-" hidden/>
-                <span><label for="nome">Nome:</label> <input type="text" id="nome" name="nome" placeholder="Nome" required autocomplete="nome" /></span>
-                <span><label for="cognome">Cognome:</label> <input type="text" id="cognome" name="cognome" placeholder="Cognome" required autocomplete="cognome" /></span>
-                <textarea id="json" name="json" hidden=""></textarea>
-                <input id="punti" name="punti" type="number" min="0" hidden="" />
-            </form>
+            <span><label for="nome">Nome:</label> <input type="text" id="alunno-nome" name="nome" placeholder="Nome" required autocomplete="nome" /></span>
+            <span><label for="cognome">Cognome:</label> <input type="text" id="alunno-cognome" name="cognome" placeholder="Cognome" required autocomplete="cognome" /></span>
         </div>
         <!-- dati_alunno -->
         <div class="specifiche">

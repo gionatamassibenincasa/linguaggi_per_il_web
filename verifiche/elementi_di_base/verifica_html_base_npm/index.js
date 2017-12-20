@@ -1,4 +1,4 @@
-import * as compiti from './lista_quesiti';
+import * as compito from './lista_quesiti';
 
 class Alunno {
     constructor(nome, cognome) {
@@ -6,8 +6,27 @@ class Alunno {
         this.cognome = cognome;
     }
 
+    static capitalizza(nome) {
+        var nomi = nome.split(' ');
+        return nomi.forEach(nome => {
+            return nome.charAt(0).toUpperCase() + nome.substring(1).toLocaleLowerCase();
+        }).join();
+    }
+
     toString() {
-        return this.cognome + ' ' + this.nome;
+        return Alunno.capitalizza(this.cognome) + ' ' + Alunno.capitalizza(this.nome);
+    }
+
+    vuoto() {
+        return this.cognome === '' || this.nome === '';
+    }
+
+    nome() {
+        return Alunno.capitalizza(this.nome);
+    }
+
+    cognome() {
+        return Alunno.capitalizza(this.cognome);
     }
 }
 
@@ -35,7 +54,13 @@ class Specifica {
 }
 
 class Verifica {
-
+    constructor(classe, alunno, quesiti, punteggio, artefatto) {
+        this.classe = '';
+        this.alunno = '';
+        this.quesiti = quesiti;
+        this.punteggio = punteggio;
+        this.punti = 0;
+    }
 }
 
 class Editor {
@@ -238,7 +263,10 @@ class Correttore {
         this.specifiche = specifiche;
         this.pagina = pagina;
         this.punteggio_grezzo = 0;
+        this.punteggio_decimi = 0;
         let punteggio_massimo = 0;
+        this.punteggi = [];
+
 
         specifiche.forEach(function (spec) {
             punteggio_massimo += spec.quesito.punteggio;
@@ -262,7 +290,7 @@ class Correttore {
                 if (preElaborazione) {
                     testo = preElaborazione(testo);
                 }
-                registro += schema + " : " + testo;
+                registro += schema + ' : ' + testo;
                 if (schema.test(testo)) {
                     return true;
                 }
@@ -284,7 +312,7 @@ class Correttore {
                             testo = preElaborazione(testo);
                         }
                         if (schema.test(testo)) {
-                            registro += schema + " : " + testo;
+                            registro += schema + ' : ' + testo;
                             return true;
                         }
                     }
@@ -308,19 +336,21 @@ class Correttore {
                 let chiave = coppieChiaveValore[0];
                 let valore = coppieChiaveValore[1];
                 let elts = radice.querySelectorAll(selettore);
-                if (typeof chiave === "string") {
+                if (elts.length === 0) return false;
+                if (typeof chiave === 'string') {
                     // Caso base - chiave di tipo stringa
                     for (let j = elts.length - 1; j > -1; j++) {
                         let elt = elts[j];
 
                         // console.log('Caso base');
+                        if (elt == null) return false;
                         let valore_attuale = elt.getAttribute(chiave);
                         if (preElaborazione) {
                             valore_attuale = preElaborazione(valore_attuale);
                         }
                         //console.log(chiave, valore, valore_attuale);
                         if (valore.test(valore_attuale)) {
-                            registro += valore + " : " + valore_attuale;
+                            registro += valore + ' : ' + valore_attuale;
                             return true;
                         }
                     }
@@ -336,24 +366,13 @@ class Correttore {
                         return true;
                     }
                 }
-                /*
-                // Caso base - oggetto con proprieta dell'elemento DOM
-                if (typeof valore === "object" && !Array.isArray(valore)) {
-                    for (const prop in valore) {
-                        if (!prop in e || e.prop.toLowerCase() != valore.prop.toLowerCase())
-                            return false;
-                        console.log(selettore + " : " + e[prop] + " // atteso: " + valore[prop] + " // test PASSATO");
-                    }
-                    return true;
-                }
-                */
             };
 
             let analizzatoreDOMAttributoContenuto = function (attributo, contenuto, radice, selettore) {
                 'use strict';
                 let verificaAttributi = function (elt) {
                     let chiave = attributo[0];
-                    if (typeof chiave === "string") {
+                    if (typeof chiave === 'string') {
                         // Caso base - chiave di tipo stringa
                         let valore_atteso = attributo[1];
                         let valore_attuale = elt.getAttribute(chiave);
@@ -431,27 +450,84 @@ class Correttore {
             }
         };
 
-        this.pagina.elementoVisualizzazioneOutput.addEventListener('load', function () {
+        this.pagina.elementoVisualizzazioneOutput.addEventListener('load', () => {
+            // Usando le funzioni a freccia this conserva il valore del costruttore
+            //
             // Attenzione, questa funzione non è un metodo di classe!
-            // Le variabili membro possono essere ridefinite come locali sopra
+            // Le variabili membro possono essere ridefinite come locali
             let punteggio_parziale = 0;
             let punteggi = [];
             specifiche.forEach(function (spec) {
                 registro = 'Spec. ' + (spec.indice + 1) + '. - ' + spec.quesito.descrizione_breve + ' || ';
-                let punti_risposta = analizza(spec, pagina);
-                punteggio_parziale += punti;
+                let punti_risposta = Number(analizza(spec, pagina));
+                punteggio_parziale += Number(punti_risposta);
                 if (document.verbose) {
                     console.log(registro + ' || ' + punteggio_parziale);
                 }
                 punteggi.push(punti_risposta);
             });
             pagina.aggiornaPunteggio(punteggi);
+            this.punteggi = punteggi;
+            this.punteggio_grezzo = Number(punteggio_parziale);
+            this.punteggio_decimi = 10 * this.punteggio_grezzo / this.punteggio_massimo;
         });
     }
 }
 
 class Consegna {
+    constructor(classe, alunno, artefatto, correttore) {
+        this.classe = classe;
+        this.alunno = alunno;
+        this.artefatto = artefatto;
+        this.correttore = correttore;
+    }
 
+    invia() {
+        ///*
+        let form = document.createElement('form');
+
+        let classe = document.createElement('input');
+        classe.value = this.classe;
+        classe.name = 'classe';
+        form.appendChild(classe);
+
+        let nome = document.createElement('input');
+        nome.value = this.alunno.nome;
+        nome.name = 'nome';
+        form.appendChild(nome);
+
+        let cognome = document.createElement('input');
+        cognome.value = this.alunno.cognome;
+        cognome.name = 'cognome';
+        form.appendChild(cognome);
+
+        let artefatto = document.createElement('textarea');
+        artefatto.value = this.artefatto;
+        artefatto.name = 'artefatto';
+        form.appendChild(artefatto);
+
+        let json = document.createElement('textarea');
+        json.value = JSON.stringify({
+            classe: this.classe,
+            alunno: this.alunno,
+            artefatto: this.artefatto,
+            correzione: this.correttore
+        });
+        json.name = 'json';
+        form.appendChild(json);
+
+        let punti = document.createElement('input');
+        punti.value = this.correttore.punteggio_decimi;
+        punti.name = '';
+        form.appendChild(punti);
+
+        form.method = 'POST';
+        form.action = 'https://script.google.com/a/savoiabenincasa.it/macros/s/AKfycbwCadXpofT_08X9n0O-CXqLvm08EvZ9M0BcbplgwQjimBYAwVn1/exec';
+
+        document.body.appendChild(form);
+        form.submit();
+        //*/
+    }
 }
 
 class CertificatoCompetenze {
@@ -473,11 +549,11 @@ let generaListaSpecifiche = function (lista) {
     return specifiche;
 };
 
-let specifiche = generaListaSpecifiche(compiti.lista_quesiti);
+let specifiche = generaListaSpecifiche(compito.lista_quesiti);
 pagina.aggiungiSpecifiche(specifiche);
 pagina.aggiungiValutazioni(specifiche);
 let configurazioneEditor = {
-    //value: "\n",
+    //value: '\n',
     mode: {
         name: 'htmlmixed',
         tags: {
@@ -493,7 +569,7 @@ let configurazioneEditor = {
     extraKeys: {
         'Ctrl-Space': 'autocomplete'
     },
-    //parserfile: ["parsexml.js", "parsecss.js", "tokenizejavascript.js", "parsejavascript.js", "parsehtmlmixed.js"],
+    //parserfile: ['parsexml.js', 'parsecss.js', 'tokenizejavascript.js', 'parsejavascript.js', 'parsehtmlmixed.js'],
     stylesheet: ['css/xmlcolors.css', 'css/jscolors.css', 'css/csscolors.css'],
     autoCloseTags: true,
     scrollbarStyle: 'simple'
@@ -501,24 +577,42 @@ let configurazioneEditor = {
 /**
  * Callback per l'aggiornamento dell'output ad ogni modifica del file sorgente
  */
-var addPreview = function (editor) {
+let addPreview = function (editor) {
     // Solo la prima volta
     document.getElementById('render').srcdoc = editor.getValue();
     editor.on('change', function () {
         document.getElementById('render').srcdoc = editor.getValue();
     });
 };
-var editor = new Editor(configurazioneEditor, addPreview);
+let editor = new Editor(configurazioneEditor, addPreview);
 // Sistema il cursore
 editor.codemirror.refresh();
-var correttore = new Correttore(specifiche, pagina, editor);
+let correttore = new Correttore(specifiche, pagina, editor);
 correttore.abilita();
 let ridimensionaEditor = function () {
     let editor = document.querySelectorAll('.CodeMirror')[0].CodeMirror;
     let height = document.getElementById('descr-specs').clientHeight;
     // set width & height
-    editor.setSize("100%", height);
+    editor.setSize('100%', height);
     editor.refresh();
 }
 window.addEventListener('resize', ridimensionaEditor);
 window.addEventListener('load', ridimensionaEditor);
+let invia = function () {
+    let classe = compito.classe;
+    let alunno = new Alunno(document.querySelector('#alunno-nome').value, document.querySelector('#alunno-cognome').value);
+    if (alunno.vuoto()) {
+        alert('Per continuare devi immettere il nome e il cognome nelle caselle in alto a destra.');
+        return;
+    }
+    let editor = document.querySelectorAll('.CodeMirror')[0].CodeMirror;
+    let artefatto = editor.getValue();
+    if (artefatto === '') {
+        alert('Per continuare devi immettere del testo.');
+        return;
+    }
+
+    let consegna = new Consegna(classe, alunno, artefatto, correttore);
+    consegna.invia();
+};
+document.querySelector('#invia').addEventListener('click', invia);
