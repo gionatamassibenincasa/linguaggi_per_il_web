@@ -518,7 +518,7 @@ class Consegna {
 
         let punti = document.createElement('input');
         punti.value = this.correttore.punteggio_decimi;
-        punti.name = '';
+        punti.name = 'punti';
         form.appendChild(punti);
 
         form.method = 'POST';
