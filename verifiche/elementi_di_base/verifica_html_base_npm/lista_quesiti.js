@@ -1,4 +1,4 @@
-export const classe = 'S-6F';
+export const classe = 'S-2D';
 export const lista_quesiti = [
     { // <!DOCTYPE html>
         quesito: {
