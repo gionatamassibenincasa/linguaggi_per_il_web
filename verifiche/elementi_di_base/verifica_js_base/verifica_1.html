@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Verifica sul linguaggio JavaScript</title>
+    <style type="text/css" media="screen">
+        .ace_editor {
+            position: relative;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            height: 300px;
+        }
+
+        .console {
+            position: relative;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            height: 50px;
+            color: white;
+            background-color: black;
+        }
+
+        .quesito {
+            clear: both;
+            border: 1px solid blue;
+            padding: 0px;
+            margin: 3px;
+        }
+
+        .specifica {
+            float: left;
+            width: 49%;
+            border: 1px solid sandybrown;
+            margin: 0;
+        }
+
+        .codice {
+            float: right;
+            width: 49%;
+            border: 1px solid lightblue;
+            margin: 0;
+        }
+
+        .clearfix {
+            clear: both;
+            display: block;
+        }
+
+        .verde {
+            color: aqua;
+        }
+    </style>
+    <script src="js/handlebars.min.js"></script>
+    <script src="js/src-min-noconflict/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="js/src-min-noconflict/ext-language_tools.js"></script>
+    <script src="js/src-min-noconflict/ext-settings_menu.js"></script>
+    <script src="js/acorn.js"></script>
+    <script src="js/walk.js"></script>
+    <script id="quesiti-template" type="text/x-handlebars-template">
+        <div class="dati_alunno">
+                <form id="form" method="post">
+                  <!--label for="classe">Classe:</label--><input type="text" id="classe" name="classe" value="S-2D" hidden/>
+                  <label for="nome">Nome:</label> <input type="text" id="nome" name="nome" placeholder="Nome" required autocomplete="nome" />
+                  <label for="cognome">Cognome:</label> <input type="text" id="cognome" name="cognome" placeholder="Cognome" required autocomplete="cognome" />
+                  <textarea id="json" name="json" hidden=""></textarea>
+                  <input id="punti" name="punti" type="number" min="0" hidden="" />
+                </form>
+                <!-- button id="cambiafont">Cambia font</button-->
+                <div class="comandi"><button id="invia">Invia</button></div>
+              </div>
+              <!-- dati_alunno -->
+        {{#each this}}
+        <div class="quesito">
+          <h2>{{titolo}}</h2>
+          <div class="specifica">
+            {{#each righeSpecifiche}}
+                {{{this}}}
+            {{/each}}
+            <button id="btnRipristina{{@index}}">Ripristina</button>
+            <button id="btnProva{{@index}}">Prova</button>
+          </div>
+          <div class="codice">
+                <div id="editor{{@index}}" class="ace_editor">{{{scheletro}}}</div>
+                <div id="console{{@index}}" class="console"></div>
+          </div>
+          <div class="clearfix"></div>
+        </div>
+        {{/each}}
+      </script>
+</head>
+
+<body>
+    <script src="js/compito_1.js"></script>
+</body>
+
+</html>

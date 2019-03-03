@@ -21,7 +21,9 @@ var context = [{
                 args: [10, 5],
                 ret: 25
             }
-        ]
+        ],
+        coefficientePunteggio: 1,
+        punteggio: 0
     }, {
         titolo: "Perimetro del triangolo rettangolo",
         righeSpecifiche: ["<p>Si definisca una procedura che restituisce il <strong>perimetro</strong> del triangolo rettangolo dati i cateti c1 e c2.</p>",
@@ -43,7 +45,9 @@ var context = [{
                 args: [5, 12],
                 ret: 30
             }
-        ]
+        ],
+        coefficientePunteggio: 1,
+        punteggio: 0
     },
     {
         titolo: "Fattoriale",
@@ -68,7 +72,9 @@ var context = [{
                 args: [5],
                 ret: 120
             }
-        ]
+        ],
+        coefficientePunteggio: 1,
+        punteggio: 0
     },
     {
         titolo: "Elevamento a potenza",
@@ -92,7 +98,9 @@ var context = [{
                 args: [5, 1],
                 ret: 5
             }
-        ]
+        ],
+        coefficientePunteggio: 1,
+        punteggio: 0
     },
     {
         titolo: "Divisione euclidea",
@@ -115,7 +123,9 @@ var context = [{
                 args: [6, 3],
                 ret: 2
             }
-        ]
+        ],
+        coefficientePunteggio: 1,
+        punteggio: 0
     },
     {
         titolo: "Inserimento in ordine",
@@ -138,7 +148,9 @@ var context = [{
                 args: [5, [1, 2, 3]],
                 ret: [1, 2, 3, 5]
             }
-        ]
+        ],
+        coefficientePunteggio: 1,
+        punteggio: 0
     }
 ];
 var html = template(context);
@@ -163,6 +175,47 @@ var gestoreProva = function (evt) {
         return ret;
     }
     var localEval = function (src, fnc, args, expected) {
+        let patches = []
+        let backJump = ";if (++__c === 1000) throw new Error(\"Loop troppo lungo\");"
+        let loop = (node) => {
+            if (node.body.type == "BlockStatement") {
+                patches.push({
+                    from: node.body.end - 1,
+                    text: backJump
+                })
+            } else {
+                patches.push({
+                    from: node.body.start,
+                    text: "{"
+                }, {
+                    from: node.body.end,
+                    text: backJump + "}"
+                })
+            }
+        }
+        try {
+            var ast = acorn.parse(src);
+            acorn.walk.simple(ast, {
+                ForStatement: loop,
+                ForInStatement: loop,
+                WhileStatement: loop,
+                DoWhileStatement: loop
+            });
+        } catch (e) {
+            console.log(e);
+        }
+        patches.sort((a, b) => a.from - b.from || (a.to || a.from) - (b.to || b.from));
+        let out = "",
+            pos = 0
+        for (let i = 0; i < patches.length; ++i) {
+            let patch = patches[i]
+            out += src.slice(pos, patch.from) + patch.text
+            pos = patch.to || patch.from
+        }
+        out += src.slice(pos, src.length)
+        out += "\n";
+        out = "var __c = 0;\n" + out;
+        src = out;
         // non sporca l'ambiente windows
         console.log("Verifica *" + fnc + " (" + arrayToString(args) + ")**");
         var newSrc = src + "JSON.stringify(" + fnc + ".apply(null, " + JSON.stringify(args) + ")) === \"" + JSON.stringify(expected) + "\";";
@@ -280,4 +333,3 @@ for (var indiceQuesito = 0; indiceQuesito < context.length; indiceQuesito++) {
     carica(indiceQuesito);
 }
 document.getElementById("invia").addEventListener('click', invia);
-//};
